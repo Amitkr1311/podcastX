@@ -1,21 +1,27 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
+import { DeepgramClient } from "@deepgram/sdk";
 
-import OpenAI from "openai";
-import { SpeechCreateParams } from "openai/resources/audio/speech.mjs";
+if (!process.env.DEEPGRAM_API_KEY) {
+  console.warn(
+    "DEEPGRAM_API_KEY is not set — set it in your Convex env vars or .env.local",
+  );
+}
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OPENAI_API_KEY is not set — set it in your Convex env vars or .env.local");
+if (!process.env.HUGGING_FACE_API_KEY) {
+  console.warn(
+    "HUGGING_FACE_API_KEY is not set — set it in your Convex env vars or .env.local",
+  );
 }
 
 /**
  * Small helper: request with retry/backoff for 429s
  */
-async function withRetry<T>(fn: () => Promise<T>, maxTries = 3, baseDelayMs = 500): Promise<T> {
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxTries = 3,
+  baseDelayMs = 500,
+): Promise<T> {
   let attempt = 0;
   while (true) {
     try {
@@ -24,13 +30,20 @@ async function withRetry<T>(fn: () => Promise<T>, maxTries = 3, baseDelayMs = 50
       attempt++;
       const status = err?.status || err?.statusCode || err?.code;
       // If rate limit / quota (429) and we have attempts left, retry with backoff
-      if ((status === 429 || err?.message?.toLowerCase().includes("quota") || err?.message?.toLowerCase().includes("rate limit")) && attempt < maxTries) {
+      if (
+        (status === 429 ||
+          err?.message?.toLowerCase().includes("quota") ||
+          err?.message?.toLowerCase().includes("rate limit")) &&
+        attempt < maxTries
+      ) {
         const wait = baseDelayMs * Math.pow(2, attempt - 1);
         await new Promise((r) => setTimeout(r, wait));
         continue;
       }
       // rethrow enriched error
-      const e = new Error(`OpenAI request failed${status ? ` (status: ${status})` : ""}: ${err?.message ?? err}`);
+      const e = new Error(
+        `Request failed${status ? ` (status: ${status})` : ""}: ${err?.message ?? err}`,
+      );
       // @ts-ignore
       e.cause = err;
       throw e;
@@ -39,89 +52,133 @@ async function withRetry<T>(fn: () => Promise<T>, maxTries = 3, baseDelayMs = 50
 }
 
 /**
- * Convert an ArrayBuffer or Buffer-like to base64 string
+ * Convert an ArrayBuffer or Uint8Array to base64 string
  */
-function arrayBufferToBase64(ab: ArrayBuffer | Buffer) {
-  const buf = Buffer.isBuffer(ab) ? ab : Buffer.from(ab);
-  return buf.toString("base64");
+function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function concatUint8Arrays(chunks: Uint8Array[]) {
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
 }
 
 export const generateAudioAction = action({
   args: { input: v.string(), voice: v.string() },
   handler: async (_, { voice, input }) => {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY missing. Add it to your Convex environment variables.");
+    if (!process.env.DEEPGRAM_API_KEY) {
+      throw new Error(
+        "DEEPGRAM_API_KEY missing. Add it to your Convex environment variables.",
+      );
     }
 
     const result = await withRetry(async () => {
-      // create audio
-      const mp3 = await openai.audio.speech.create({
-        model: "tts-1",
-        voice: voice as SpeechCreateParams["voice"],
-        input,
-      } as any);
-
-      // SDK may return a Node Response-like object with arrayBuffer()
-      // or a stream - attempt arrayBuffer first.
-      let ab: ArrayBuffer | Buffer;
-      if (typeof (mp3 as any).arrayBuffer === "function") {
-        ab = await (mp3 as any).arrayBuffer();
-      } else if (mp3 instanceof ArrayBuffer) {
-        ab = mp3;
-      } else if (Buffer.isBuffer(mp3)) {
-        ab = mp3;
-      } else {
-        // Fallback: try to read as any
-        throw new Error("Unknown audio response shape from OpenAI SDK.");
-      }
-
-      const base64 = arrayBufferToBase64(ab);
-      // Return base64 with mime — client will convert to blob
+      const audioContent = await generateDeepgramTTS(input, voice);
+      const base64 = arrayBufferToBase64(audioContent);
       return { base64, mime: "audio/mpeg" };
     });
 
-    return result; // { base64, mime }
+    return result;
   },
 });
+
+/**
+ * Map voice names to Deepgram Aura voices
+ */
+const voiceMap: Record<string, string> = {
+  alloy: "aura-2-athena-en",
+  echo: "aura-2-draco-en",
+  fable: "aura-2-cora-en",
+  nova: "aura-2-pluto-en",
+  onyx: "aura-2-vesta-en",
+  shimmer: "aura-2-orpheus-en",
+};
+
+/**
+ * Generate audio using Deepgram TTS
+ * uses aura-2-thalia-en or mapped voices
+ */
+async function generateDeepgramTTS(
+  text: string,
+  voice: string,
+): Promise<Uint8Array> {
+  const deepgram = new DeepgramClient();
+
+  const modelId = voiceMap[voice] || "aura-2-orpheus-en";
+
+  const response = await deepgram.speak.v1.audio.generate({
+    text,
+    model: modelId,
+  });
+
+  const stream = response.stream();
+  if (!stream) {
+    throw new Error("Deepgram failed to return a stream.");
+  }
+
+  // Convert the Web ReadableStream to a Buffer
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
+  }
+  return concatUint8Arrays(chunks);
+}
 
 export const generateThumbnailAction = action({
   args: { prompt: v.string() },
   handler: async (_, { prompt }) => {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY missing. Add it to your Convex environment variables.");
+    if (!process.env.HUGGING_FACE_API_KEY) {
+      throw new Error(
+        "HUGGING_FACE_API_KEY missing. Add it to your Convex environment variables.",
+      );
     }
 
     const result = await withRetry(async () => {
-      const response = await openai.images.generate({
-        model: "dall-e-3",
-        prompt,
-        size: "1024x1024",
-        quality: "standard",
-        n: 1,
-      } as any);
-
-      const first = response.data?.[0];
-      // Newer SDK often returns b64_json. Older flows return a url to fetch.
-      if (first?.b64_json) {
-        return { base64: first.b64_json, mime: "image/png" };
-      }
-
-      const url = first?.url;
-      if (!url) {
-        throw new Error("No image URL or b64_json returned by OpenAI images.generate");
-      }
-
-      // fetch the URL and convert to base64
-      const imageRes = await fetch(url);
-      if (!imageRes.ok) {
-        throw new Error(`Failed to fetch generated image: ${imageRes.status} ${imageRes.statusText}`);
-      }
-      const contentType = imageRes.headers.get("content-type") || "image/png";
-      const arrayBuffer = await imageRes.arrayBuffer();
-      const base64 = arrayBufferToBase64(arrayBuffer);
-      return { base64, mime: contentType };
+      const imageBuffer = await generateHuggingFaceImage(prompt);
+      const base64 = arrayBufferToBase64(imageBuffer);
+      return { base64, mime: "image/png" };
     });
 
-    return result; // { base64, mime }
+    return result;
   },
 });
+
+/**
+ * Generate image using Hugging Face Inference API (Stable Diffusion)
+ */
+async function generateHuggingFaceImage(prompt: string): Promise<Uint8Array> {
+  const apiKey = process.env.HUGGING_FACE_API_KEY;
+  const modelId = "stabilityai/stable-diffusion-2-1";
+
+  const response = await fetch(
+    `https://api-inference.huggingface.co/models/${modelId}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey!}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ inputs: prompt }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Hugging Face API error: ${response.statusText}`);
+  }
+
+  return new Uint8Array(await response.arrayBuffer());
+}

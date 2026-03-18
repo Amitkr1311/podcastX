@@ -11,6 +11,16 @@ import { useToast } from "@/components/ui/use-toast"
 
 import { useUploadFiles } from '@xixixao/uploadstuff/react';
 
+const base64ToBlob = (base64: string, mime: string) => {
+  const byteChars = atob(base64);
+  const byteNumbers = new Array(byteChars.length);
+  for (let i = 0; i < byteChars.length; i++) {
+    byteNumbers[i] = byteChars.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mime });
+}
+
 const useGeneratePodcast = ({
   setAudio, voiceType, voicePrompt, setAudioStorageId
 }: GeneratePodcastProps) => {
@@ -41,7 +51,7 @@ const useGeneratePodcast = ({
         input: voicePrompt
       })
 
-      const blob = new Blob([response], { type: 'audio/mpeg' });
+      const blob = base64ToBlob(response.base64, response.mime || 'audio/mpeg');
       const fileName = `podcast-${uuidv4()}.mp3`;
       const file = new File([blob], fileName, { type: 'audio/mpeg' });
 

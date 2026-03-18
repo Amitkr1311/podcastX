@@ -16,7 +16,7 @@ export default clerkMiddleware(async (auth, req : NextRequest) => {
     //     return Response.redirect(new URL('/sign-in', req.url));
     //  }
     if (!isPublicRoute(req)) {
-    await auth.protect(); // This handles the redirect automatically
+    (await auth()).protect(); // This handles the redirect automatically
   }
 });
 
