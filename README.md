@@ -1,13 +1,13 @@
 <div align="center">
   <br />
   <h1>🎙️ podcastX</h1>
-  <p>An AI-driven podcast creation & discovery platform built with Next.js, Convex, OpenAI, and Clerk.</p>
+  <p>An AI-driven podcast creation & discovery platform built with Next.js, Convex, Deepgram, and Clerk.</p>
   <br />
   <div>
     <img src="https://img.shields.io/badge/-TypeScript-black?style=for-the-badge&logo=typescript&color=3178C6" alt="TypeScript" />
     <img src="https://img.shields.io/badge/-Next.js-black?style=for-the-badge&logo=nextdotjs&color=000000" alt="Next.js" />
     <img src="https://img.shields.io/badge/-Tailwind_CSS-black?style=for-the-badge&logo=tailwindcss&color=06B6D4" alt="Tailwind" />
-    <img src="https://img.shields.io/badge/-OpenAI-black?style=for-the-badge&logo=openai&color=412991" alt="OpenAI" />
+    <img src="https://img.shields.io/badge/-OpenAI-black?style=for-the-badge&logo=openai&color=412991" alt="Deepgram" />
   </div>
 </div>
 
@@ -26,7 +26,7 @@ podcastX is a modern web app that lets users generate AI-powered podcasts, explo
 
 ## <a name="features">Features</a>
 
-- ✅ **Create podcasts from text** using OpenAI text‑to‑speech
+- ✅ **Create podcasts from text** using Deepgram text‑to‑speech
 - ✅ **Generate podcast thumbnails** with AI image generation
 - ✅ **User auth + profiles** via Clerk
 - ✅ **Realtime backend** with Convex for storing podcasts, comments, and stats
@@ -39,7 +39,7 @@ podcastX is a modern web app that lets users generate AI-powered podcasts, explo
 - Next.js (App Router)
 - TypeScript
 - Convex (backend + realtime database)
-- OpenAI (text-to-speech + image generation)
+- Deepgram (text-to-speech)
 - Clerk (authentication)
 - Tailwind CSS + ShadCN UI
 
