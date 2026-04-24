@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import GeneratePodcast from "@/components/GeneratePodcast"
 import GenerateThumbnail from "@/components/GenerateThumbnail"
@@ -53,6 +53,7 @@ const CreatePodcast = () => {
   const [audioDuration, setAudioDuration] = useState(0);
   
   const [voiceType, setVoiceType] = useState<string | null>(null);
+  const [voiceTypeB, setVoiceTypeB] = useState<string | null>(null);
   const [voicePrompt, setVoicePrompt] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,12 +70,18 @@ const CreatePodcast = () => {
     },
   })
  
+  useEffect(() => {
+    if (voiceType && voiceTypeB === voiceType) {
+      setVoiceTypeB(null);
+    }
+  }, [voiceType, voiceTypeB]);
+
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       setIsSubmitting(true);
-      if(!audioUrl || !imageUrl || !voiceType) {
+      if(!audioUrl || !imageUrl || !voiceType || !voiceTypeB) {
         toast({
-          title: 'Please generate audio and image',
+          title: 'Please select both voices and generate audio/image',
         })
         setIsSubmitting(false);
         throw new Error('Please generate audio and image')
@@ -129,12 +136,15 @@ const CreatePodcast = () => {
 
             <div className="flex flex-col gap-2.5">
               <Label className="text-16 font-bold text-white-1">
-                Select AI Voice
+                Select Speaker A Voice
               </Label>
 
-              <Select onValueChange={(value) => setVoiceType(value)}>
+              <Select
+                value={voiceType ?? undefined}
+                onValueChange={(value) => setVoiceType(value)}
+              >
                 <SelectTrigger className={cn('text-16 w-full border-none bg-black-1 text-gray-1 focus-visible:ring-offset-orange-1')}>
-                  <SelectValue placeholder="Select AI Voice" className="placeholder:text-gray-1 " />
+                  <SelectValue placeholder="Select Speaker A Voice" className="placeholder:text-gray-1 " />
                 </SelectTrigger>
                 <SelectContent className="text-16 border-none bg-black-1 font-bold text-white-1 focus:ring-orange-1">
                   {voiceCategories.map((category) => (
@@ -143,14 +153,59 @@ const CreatePodcast = () => {
                     </SelectItem>
                   ))}
                 </SelectContent>
-                {voiceType && (
-                  <audio 
-                    src={`/${voiceType}.mp3`}
-                    autoPlay
-                    className="hidden"
-                  />
-                )}
               </Select>
+              {voiceType && (
+                <div className="mt-2.5 flex flex-col gap-2">
+                  <Label className="text-14 font-medium text-white-1">
+                    Preview Speaker A Voice
+                  </Label>
+                  <audio
+                    src={`/${voiceType}.mp3`}
+                    controls
+                    preload="none"
+                    aria-label={`Preview audio for Speaker A voice ${voiceType}`}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <Label className="text-16 font-bold text-white-1">
+                Select Speaker B Voice
+              </Label>
+
+              <Select
+                value={voiceTypeB ?? undefined}
+                onValueChange={(value) => setVoiceTypeB(value)}
+              >
+                <SelectTrigger className={cn('text-16 w-full border-none bg-black-1 text-gray-1 focus-visible:ring-offset-orange-1')}>
+                  <SelectValue placeholder="Select Speaker B Voice" className="placeholder:text-gray-1 " />
+                </SelectTrigger>
+                <SelectContent className="text-16 border-none bg-black-1 font-bold text-white-1 focus:ring-orange-1">
+                  {voiceCategories
+                    .filter((category) => category !== voiceType)
+                    .map((category) => (
+                      <SelectItem key={category} value={category} className="capitalize focus:bg-orange-1">
+                        {category}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {voiceTypeB && (
+                <div className="mt-2.5 flex flex-col gap-2">
+                  <Label className="text-14 font-medium text-white-1">
+                    Preview Speaker B Voice
+                  </Label>
+                  <audio
+                    src={`/${voiceTypeB}.mp3`}
+                    controls
+                    preload="none"
+                    aria-label={`Preview audio for Speaker B voice ${voiceTypeB}`}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
 
             <FormField
@@ -171,7 +226,8 @@ const CreatePodcast = () => {
               <GeneratePodcast 
                 setAudioStorageId={setAudioStorageId}
                 setAudio={setAudioUrl}
-                voiceType={voiceType!}
+                voiceType={voiceType ?? ''}
+                voiceTypeB={voiceTypeB ?? ''}
                 audio={audioUrl}
                 voicePrompt={voicePrompt}
                 setVoicePrompt={setVoicePrompt}
