@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import GeneratePodcast from "@/components/GeneratePodcast"
 import GenerateThumbnail from "@/components/GenerateThumbnail"
@@ -55,6 +55,7 @@ const CreatePodcast = () => {
   const [voiceType, setVoiceType] = useState<string | null>(null);
   const [voiceTypeB, setVoiceTypeB] = useState<string | null>(null);
   const [voicePrompt, setVoicePrompt] = useState('');
+  const voicePreviewRef = useRef<HTMLAudioElement | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -75,6 +76,32 @@ const CreatePodcast = () => {
       setVoiceTypeB(null);
     }
   }, [voiceType, voiceTypeB]);
+
+  useEffect(() => {
+    return () => {
+      voicePreviewRef.current?.pause();
+    };
+  }, []);
+
+  const playVoicePreview = (voice: string) => {
+    voicePreviewRef.current?.pause();
+
+    const audio = new Audio(`/${voice}.mp3`);
+    voicePreviewRef.current = audio;
+    void audio.play().catch(() => {
+      voicePreviewRef.current = null;
+    });
+  };
+
+  const handleSpeakerAVoiceChange = (value: string) => {
+    setVoiceType(value);
+    playVoicePreview(value);
+  };
+
+  const handleSpeakerBVoiceChange = (value: string) => {
+    setVoiceTypeB(value);
+    playVoicePreview(value);
+  };
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
@@ -141,7 +168,7 @@ const CreatePodcast = () => {
 
               <Select
                 value={voiceType ?? undefined}
-                onValueChange={(value) => setVoiceType(value)}
+                onValueChange={handleSpeakerAVoiceChange}
               >
                 <SelectTrigger className={cn('text-16 w-full border-none bg-black-1 text-gray-1 focus-visible:ring-offset-orange-1')}>
                   <SelectValue placeholder="Select Speaker A Voice" className="placeholder:text-gray-1 " />
@@ -154,20 +181,6 @@ const CreatePodcast = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {voiceType && (
-                <div className="mt-2.5 flex flex-col gap-2">
-                  <Label className="text-14 font-medium text-white-1">
-                    Preview Speaker A Voice
-                  </Label>
-                  <audio
-                    src={`/${voiceType}.mp3`}
-                    controls
-                    preload="none"
-                    aria-label={`Preview audio for Speaker A voice ${voiceType}`}
-                    className="w-full"
-                  />
-                </div>
-              )}
             </div>
 
             <div className="flex flex-col gap-2.5">
@@ -177,7 +190,7 @@ const CreatePodcast = () => {
 
               <Select
                 value={voiceTypeB ?? undefined}
-                onValueChange={(value) => setVoiceTypeB(value)}
+                onValueChange={handleSpeakerBVoiceChange}
               >
                 <SelectTrigger className={cn('text-16 w-full border-none bg-black-1 text-gray-1 focus-visible:ring-offset-orange-1')}>
                   <SelectValue placeholder="Select Speaker B Voice" className="placeholder:text-gray-1 " />
@@ -192,20 +205,6 @@ const CreatePodcast = () => {
                     ))}
                 </SelectContent>
               </Select>
-              {voiceTypeB && (
-                <div className="mt-2.5 flex flex-col gap-2">
-                  <Label className="text-14 font-medium text-white-1">
-                    Preview Speaker B Voice
-                  </Label>
-                  <audio
-                    src={`/${voiceTypeB}.mp3`}
-                    controls
-                    preload="none"
-                    aria-label={`Preview audio for Speaker B voice ${voiceTypeB}`}
-                    className="w-full"
-                  />
-                </div>
-              )}
             </div>
 
             <FormField

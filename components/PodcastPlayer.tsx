@@ -93,6 +93,8 @@ const PodcastPlayer = () => {
     setIsPlaying(false);
   };
 
+  const progressValue = duration > 0 ? (currentTime / duration) * 100 : 0;
+
   return (
     <div
       className={cn("sticky bottom-0 left-0 flex size-full flex-col", {
@@ -101,9 +103,8 @@ const PodcastPlayer = () => {
     >
       {/* change the color for indicator inside the Progress component in ui folder */}
       <Progress
-        value={(currentTime / duration) * 100}
+        value={progressValue}
         className="w-full"
-        max={duration}
       />
       <section className="glassmorphism-black flex h-[112px] w-full items-center justify-between px-4 max-md:justify-center max-md:gap-5 md:px-12">
         <audio

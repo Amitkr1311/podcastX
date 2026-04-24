@@ -22,6 +22,23 @@ const PodcastDetails = ({ params: { podcastId } }: { params: { podcastId: Id<'po
 
   if(!similarPodcasts || !podcast) return <LoaderSpinner />
 
+  const {
+    audioUrl,
+    audioStorageId,
+    imageUrl,
+    imageStorageId,
+  } = podcast;
+
+  if (!audioUrl || !audioStorageId || !imageUrl || !imageStorageId) {
+    return (
+      <EmptyState
+        title="Podcast media is unavailable"
+        buttonLink="/discover"
+        buttonText="Discover more podcasts"
+      />
+    );
+  }
+
   return (
     <section className="flex w-full flex-col">
       <header className="mt-9 flex items-center justify-between">
@@ -42,7 +59,14 @@ const PodcastDetails = ({ params: { podcastId } }: { params: { podcastId: Id<'po
       <PodcastDetailPlayer 
         isOwner={isOwner}
         podcastId={podcast._id}
-        {...podcast}
+        audioUrl={audioUrl}
+        audioStorageId={audioStorageId}
+        imageUrl={imageUrl}
+        imageStorageId={imageStorageId}
+        podcastTitle={podcast.podcastTitle}
+        author={podcast.author}
+        authorImageUrl={podcast.authorImageUrl}
+        authorId={podcast.authorId}
       />
 
       <p className="text-white-2 text-16 pb-8 pt-[45px] font-medium max-md:text-center">{podcast?.podcastDescription}</p>
