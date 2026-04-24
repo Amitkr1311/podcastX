@@ -53,24 +53,11 @@ const useGeneratePodcast = ({
     }
 
     try {
-      let response;
-      try {
-        response = await getPodcastAudio({
-          voice: voiceType,
-          voiceB: voiceTypeB || undefined,
-          input: voicePrompt
-        })
-      } catch (error: any) {
-        const msg = String(error?.message || error || '');
-        if (msg.includes('extra field `voiceB`')) {
-          response = await getPodcastAudio({
-            voice: voiceType,
-            input: voicePrompt
-          })
-        } else {
-          throw error;
-        }
-      }
+      const response = await getPodcastAudio({
+        voice: voiceType,
+        ...(voiceTypeB ? { voiceB: voiceTypeB } : {}),
+        input: voicePrompt
+      })
 
       const blob = base64ToBlob(response.base64, response.mime || 'audio/mpeg');
       const fileName = `podcast-${uuidv4()}.mp3`;

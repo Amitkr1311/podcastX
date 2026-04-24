@@ -139,9 +139,12 @@ const CreatePodcast = () => {
                 Select Speaker A Voice
               </Label>
 
-              <Select onValueChange={(value) => setVoiceType(value)}>
+              <Select
+                value={voiceType ?? undefined}
+                onValueChange={(value) => setVoiceType(value)}
+              >
                 <SelectTrigger className={cn('text-16 w-full border-none bg-black-1 text-gray-1 focus-visible:ring-offset-orange-1')}>
-                  <SelectValue placeholder="Select AI Voice" className="placeholder:text-gray-1 " />
+                  <SelectValue placeholder="Select Speaker A Voice" className="placeholder:text-gray-1 " />
                 </SelectTrigger>
                 <SelectContent className="text-16 border-none bg-black-1 font-bold text-white-1 focus:ring-orange-1">
                   {voiceCategories.map((category) => (
@@ -165,7 +168,10 @@ const CreatePodcast = () => {
                 Select Speaker B Voice
               </Label>
 
-              <Select onValueChange={(value) => setVoiceTypeB(value)}>
+              <Select
+                value={voiceTypeB ?? undefined}
+                onValueChange={(value) => setVoiceTypeB(value)}
+              >
                 <SelectTrigger className={cn('text-16 w-full border-none bg-black-1 text-gray-1 focus-visible:ring-offset-orange-1')}>
                   <SelectValue placeholder="Select Speaker B Voice" className="placeholder:text-gray-1 " />
                 </SelectTrigger>

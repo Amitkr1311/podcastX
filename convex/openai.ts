@@ -338,7 +338,7 @@ async function generateConversationalDeepgramTTS(
   const turns = await buildConversationTurns(input);
 
   if (turns.length === 0) {
-    return generateDeepgramTTS(input, voiceA);
+    return await withRetry(() => generateDeepgramTTS(input, voiceA));
   }
 
   const chunks: Uint8Array[] = [];

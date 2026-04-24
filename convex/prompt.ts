@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
 
 const CONVERSATION_REWRITE_SYSTEM_PROMPT = `
 You convert user text into a 2-speaker podcast dialogue.
