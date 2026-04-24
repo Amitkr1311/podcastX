@@ -22,7 +22,7 @@ const base64ToBlob = (base64: string, mime: string) => {
 }
 
 const useGeneratePodcast = ({
-  setAudio, voiceType, voicePrompt, setAudioStorageId
+  setAudio, voiceType, voiceTypeB, voicePrompt, setAudioStorageId
 }: GeneratePodcastProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast()
@@ -40,16 +40,37 @@ const useGeneratePodcast = ({
 
     if(!voicePrompt) {
       toast({
-        title: "Please provide a voiceType to generate a podcast",
+        title: "Please provide text to generate a podcast",
+      })
+      return setIsGenerating(false);
+    }
+
+    if(!voiceType) {
+      toast({
+        title: "Please select Speaker A voice",
       })
       return setIsGenerating(false);
     }
 
     try {
-      const response = await getPodcastAudio({
-        voice: voiceType,
-        input: voicePrompt
-      })
+      let response;
+      try {
+        response = await getPodcastAudio({
+          voice: voiceType,
+          voiceB: voiceTypeB || undefined,
+          input: voicePrompt
+        })
+      } catch (error: any) {
+        const msg = String(error?.message || error || '');
+        if (msg.includes('extra field `voiceB`')) {
+          response = await getPodcastAudio({
+            voice: voiceType,
+            input: voicePrompt
+          })
+        } else {
+          throw error;
+        }
+      }
 
       const blob = base64ToBlob(response.base64, response.mime || 'audio/mpeg');
       const fileName = `podcast-${uuidv4()}.mp3`;
@@ -87,12 +108,12 @@ const GeneratePodcast = (props: GeneratePodcastProps) => {
     <div>
       <div className="flex flex-col gap-2.5">
         <Label className="text-16 font-bold text-white-1">
-          AI Prompt to generate Podcast
+          Script or Topic for Conversational Podcast
         </Label>
         <Textarea 
           className="input-class font-light focus-visible:ring-offset-orange-1"
-          placeholder='Provide text to generate audio'
-          rows={5}
+          placeholder={'Paste a topic or use script format:\nHost: ...\nGuest: ...'}
+          rows={7}
           value={props.voicePrompt}
           onChange={(e) => props.setVoicePrompt(e.target.value)}
         />

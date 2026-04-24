@@ -1,7 +1,7 @@
 {
-  "name": "podcastr",
+  "name": "podcastx",
   "version": "0.1.0",
-  "description": "Podcastr — an AI-powered podcast creation and discovery app built with Next.js, Convex, and OpenAI.",
+  "description": "PodcastX — an AI-powered podcast creation and discovery app built with Next.js, Convex, and OpenAI.",
   "private": true,
   "scripts": {
     "dev": "next dev",
