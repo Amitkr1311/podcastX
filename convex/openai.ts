@@ -108,7 +108,8 @@ type ConversationTurn = {
   text: string;
 };
 
-const MAX_CONVERSATION_TURNS = 14;
+const MAX_CONVERSATION_TURNS = 10;
+const MAX_TTS_CONCURRENCY = 3;
 
 function getCompanionVoice(voice: string) {
   return voicePairMap[voice] ?? "echo";
@@ -341,20 +342,54 @@ async function generateConversationalDeepgramTTS(
     return await withRetry(() => generateDeepgramTTS(input, voiceA));
   }
 
-  const chunks: Uint8Array[] = [];
-
-  for (const turn of turns) {
-    const voice = turn.speaker === "A" ? voiceA : voiceB;
-    const audio = await withRetry(() => generateDeepgramTTS(turn.text, voice));
-    chunks.push(audio);
-  }
+  const chunks = await generateTurnAudiosWithConcurrency(turns, voiceA, voiceB);
 
   return concatUint8Arrays(chunks);
+}
+
+async function generateTurnAudiosWithConcurrency(
+  turns: ConversationTurn[],
+  voiceA: string,
+  voiceB: string,
+): Promise<Uint8Array[]> {
+  const results = new Array<Uint8Array>(turns.length);
+  const workerCount = Math.min(MAX_TTS_CONCURRENCY, turns.length);
+  let nextIndex = 0;
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (true) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        if (currentIndex >= turns.length) break;
+
+        const turn = turns[currentIndex];
+        const voice = turn.speaker === "A" ? voiceA : voiceB;
+
+        try {
+          results[currentIndex] = await withRetry(() =>
+            generateDeepgramTTS(turn.text, voice),
+          );
+        } catch (error: any) {
+          throw new Error(
+            `Failed to synthesize turn ${currentIndex + 1}: ${error?.message ?? error}`,
+          );
+        }
+      }
+    }),
+  );
+
+  return results;
 }
 
 export const generateAudioAction = action({
   args: { input: v.string(), voice: v.string(), voiceB: v.optional(v.string()) },
   handler: async (_, { voice, input, voiceB }) => {
+    const normalizedInput = input.trim();
+    if (!normalizedInput) {
+      throw new Error("Input text is empty. Please provide text to generate audio.");
+    }
+
     if (!process.env.DEEPGRAM_API_KEY) {
       throw new Error(
         "DEEPGRAM_API_KEY missing. Add it to your Convex environment variables.",
@@ -365,7 +400,7 @@ export const generateAudioAction = action({
       voiceB && voiceB !== voice ? voiceB : getCompanionVoice(voice);
 
     const audioContent = await generateConversationalDeepgramTTS(
-      input,
+      normalizedInput,
       voice,
       secondaryVoice,
     );

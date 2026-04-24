@@ -153,14 +153,21 @@ const CreatePodcast = () => {
                     </SelectItem>
                   ))}
                 </SelectContent>
-                {voiceType && (
-                  <audio 
-                    src={`/${voiceType}.mp3`}
-                    autoPlay
-                    className="hidden"
-                  />
-                )}
               </Select>
+              {voiceType && (
+                <div className="mt-2.5 flex flex-col gap-2">
+                  <Label className="text-14 font-medium text-white-1">
+                    Preview Speaker A Voice
+                  </Label>
+                  <audio
+                    src={`/${voiceType}.mp3`}
+                    controls
+                    preload="none"
+                    aria-label={`Preview audio for Speaker A voice ${voiceType}`}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-2.5">
@@ -184,14 +191,21 @@ const CreatePodcast = () => {
                       </SelectItem>
                     ))}
                 </SelectContent>
-                {voiceTypeB && (
-                  <audio 
-                    src={`/${voiceTypeB}.mp3`}
-                    autoPlay
-                    className="hidden"
-                  />
-                )}
               </Select>
+              {voiceTypeB && (
+                <div className="mt-2.5 flex flex-col gap-2">
+                  <Label className="text-14 font-medium text-white-1">
+                    Preview Speaker B Voice
+                  </Label>
+                  <audio
+                    src={`/${voiceTypeB}.mp3`}
+                    controls
+                    preload="none"
+                    aria-label={`Preview audio for Speaker B voice ${voiceTypeB}`}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
 
             <FormField
