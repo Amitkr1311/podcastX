@@ -7,5 +7,7 @@ export default clerkMiddleware((auth, req) => {
 });
 
 export const config = {
-  matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
+  // The homepage is public and does not need Clerk's development handshake.
+  // Keep Clerk middleware on all non-root application routes and APIs.
+  matcher: ['/((?!.*\\..*|_next).+)', '/(api|trpc)(.*)'],
 };
