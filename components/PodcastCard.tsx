@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import React from 'react'
 
 const PodcastCard = ({
-  imgUrl, title, description, podcastId
+  imgUrl, title, description, podcastId, priority = false
 }: PodcastCardProps) => {
   const router = useRouter()
 
@@ -21,10 +21,13 @@ const PodcastCard = ({
       <figure className="flex flex-col gap-2">
         <Image 
           src={imgUrl}
-          width={174}
-          height={174}
+          width={348}
+          height={196}
+          priority={priority}
+          quality={65}
+          sizes="(min-width: 1536px) 200px, (min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
           alt={title}
-          className="aspect-square h-fit w-full rounded-xl 2xl:size-[200px]"
+          className="aspect-video h-auto w-full rounded-xl object-cover 2xl:w-[200px]"
         />
         <div className="flex flex-col">
           <h1 className="text-16 truncate font-bold text-white-1">{title}</h1>
